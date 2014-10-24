@@ -1,6 +1,6 @@
 # flux
 
-A Clojure based Solr client. Current Apache Solr version support is `4.9.0`.
+This is a fork of Matt Mitchell's Flux - a Clojure based Solr client + Criteria DSL to make SOLR queries bit sweeter. Current Apache Solr version support is `4.9.0`.
 
 ## Installation (Leiningen)
 
@@ -56,6 +56,71 @@ Once a connection as been created, use the `with-connection` macro to wrap clien
     ;; Or set the path and/or method:
     (flux/request
       (q/create-query-request :post "/docs" {:q "etc"}))
+```
+
+### Criteria
+As it's quite cumbersome to define filters using raw Solr syntax following is a neat criteria DSL to make things a bit smoother.
+
+```clojure
+(use 'flux.criteria)
+
+;; make:Mercedes*
+
+(create-criteria
+  (is :make "Mercedes*"))
+
+;; category:car/Mercedes/Sprinter
+
+(create-criteria
+  (is :category "car/Mercedes/Sprinter"))
+
+;; category:car/Mercedes/Sprinter AND build_year:2010
+
+(create-criteria
+  (is :category "car/Mercedes/Sprinter")
+  (is :build_year 2010))
+
+this is equivalent to:
+
+(create-criteria
+  (and
+    (is :category "car/Mercedes/Sprinter")
+    (is :build_year 2010)))
+
+and can be shortened even further:
+
+(create-criteria
+  (is {:category  "car/Mercedes/Sprinter" 
+       :build_year 2010}))
+
+this kind of "shortcut" applies to all handled functions listed below.
+
+;; (-technical_condition:damaged) OR ((price:[* TO 5000]) AND (build_year:[* TO 2005]))
+
+(create-criteria
+  (or
+    (is-not :technical_condition "damaged")
+    (<= {:price 5000 :build_year 2005})))
+
+;; make:[audi mercedes]
+
+(create-criteria
+   (any :make ["audi" "mercedes"]))
+
+;; -make:[zaporożec wołga]
+
+(create-criteria
+   (none :make ["zaporożec" "wołga"]))
+
+;; (description:"nówka sztuka") OR (price:[5000 TO 15000] AND currency:PLN))
+
+(create-criteria
+   (or
+     (has :description "nówka sztuka")
+     (and
+        (between :price [5000 15000])
+        (is :currency "PLN"))))
+
 ```
 
 ###javax.servlet/servlet-api and EmbeddedSolrServer
