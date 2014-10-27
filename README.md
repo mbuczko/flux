@@ -58,7 +58,7 @@ Once a connection as been created, use the `with-connection` macro to wrap clien
       (q/create-query-request :post "/docs" {:q "etc"}))
 ```
 
-### Criteria
+### Criteria DSL
 As it's quite cumbersome to define filters using raw Solr syntax following is a neat criteria DSL to make things a bit smoother.
 
 ```clojure
@@ -66,55 +66,53 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 
 ;; make:Mercedes*
 
-(create-criteria
+(with-criteria
   (is :make "Mercedes*"))
 
 ;; category:car/Mercedes/Sprinter
 
-(create-criteria
+(with-criteria
   (is :category "car/Mercedes/Sprinter"))
 
 ;; category:car/Mercedes/Sprinter AND build_year:2010
 
-(create-criteria
+(with-criteria
   (is :category "car/Mercedes/Sprinter")
   (is :build_year 2010))
 
-this is equivalent to:
+;; this is equivalent to:
 
-(create-criteria
+(with-criteria
   (and
     (is :category "car/Mercedes/Sprinter")
     (is :build_year 2010)))
 
-and can be shortened even further:
+;; and can be shortened even further (this kind of "shortcut" applies to all functions listed below):
 
-(create-criteria
+(with-criteria
   (is {:category  "car/Mercedes/Sprinter" 
        :build_year 2010}))
 
-this kind of "shortcut" applies to all handled functions listed below.
-
 ;; (-technical_condition:damaged) OR ((price:[* TO 5000]) AND (build_year:[* TO 2005]))
 
-(create-criteria
+(with-criteria
   (or
     (is-not :technical_condition "damaged")
     (<= {:price 5000 :build_year 2005})))
 
 ;; make:[audi mercedes]
 
-(create-criteria
-   (any :make ["audi" "mercedes"]))
+(with-criteria
+   (any-of :make ["audi" "mercedes"]))
 
 ;; -make:[zaporożec wołga]
 
-(create-criteria
-   (none :make ["zaporożec" "wołga"]))
+(with-criteria
+   (none-of :make ["zaporożec" "wołga"]))
 
 ;; (description:"nówka sztuka") OR (price:[5000 TO 15000] AND currency:PLN))
 
-(create-criteria
+(with-criteria
    (or
      (has :description "nówka sztuka")
      (and
@@ -122,6 +120,17 @@ this kind of "shortcut" applies to all handled functions listed below.
         (is :currency "PLN"))))
 
 ```
+Same story with facets:
+
+    (with-facets [:popularity :category]
+      (pivot (:on "popularity" :limit 5 :mincount 2))
+
+And all things combined together:
+
+    (-> "*:*"
+	  (with-criteria (...))
+	  (with-facets (...))
+	  (with-options {:limit 100 :page 2}))
 
 ###javax.servlet/servlet-api and EmbeddedSolrServer
 

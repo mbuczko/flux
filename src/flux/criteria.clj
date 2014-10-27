@@ -27,8 +27,16 @@
       (let [field (name (first args))]
         (apply cfn field (rest args))))))
 
-(defn chain-criteria* [body]
-  (join-op " AND " body))
+(defn- chain-criteria* [body]
+  (if (= (count body) 1)
+    (first body)
+    (join-op " AND " body)))
+
+(defn- chain-facets* [body]
+  ())
+
+(defn- chain-query* [query args]
+  (if (nil? query) args (merge args (if (map? query) query {:q query}))))
 
 (defn or [& args]
   (join-op " OR " args))
@@ -51,17 +59,23 @@
 (defn is-not [& args]
   (negate is args))
 
-(defn any [& args]
+(defn any-of [& args]
   (make-criteria #(str %1 ":[" (s/join " " %2) "]") args))
 
-(defn none [& args]
-  (negate any args))
+(defn none-of [& args]
+  (negate any-of args))
 
 (defn between [& args]
   (make-criteria #(str %1 ":[" (first %2) " TO " (second %2) "]") args))
 
-(defn take-when [pred [x & more :as fail]]
-  (if (pred x) [x more] [nil fail]))
+(defn take-when [pred [x & more :as body]]
+  (if (pred x) [x more] [nil body]))
 
-(defn create-criteria [& body]
-  (chain-criteria* body))
+(defmacro with-criteria [& body]
+  (let [[maybe-query args] (take-when #(not (list? %)) body)]
+    (chain-query* maybe-query {:fq (chain-criteria* args)})))
+
+(defmacro with-facets [& body]
+  (let [[maybe-query args] (take-when #(not (list? %)) body)]
+    (chain-query* maybe-query (assoc (chain-facets* args) :facet true))))
+
