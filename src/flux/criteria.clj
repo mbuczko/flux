@@ -32,11 +32,20 @@
     (first body)
     (join-op " AND " body)))
 
-(defn- chain-facets* [body]
-  ())
+(defn chain-facets* [facets & opts]
+  (map #(str "facet.field=" %) (vec facets)))
 
 (defn- chain-query* [query args]
   (if (nil? query) args (merge args (if (map? query) query {:q query}))))
+
+(defn !tag [field tag]
+  (str "{!tag=" tag "}" (name field)))
+
+(defn !ex [field exclude]
+  (str "{!ex=" exclude "}" (name field)))
+
+(defn facet [field]
+  (str "facet.field=" field))
 
 (defn or [& args]
   (join-op " OR " args))
@@ -77,5 +86,9 @@
 
 (defmacro with-facets [& body]
   (let [[maybe-query args] (take-when #(not (list? %)) body)]
-    (chain-query* maybe-query (assoc (chain-facets* args) :facet true))))
+    ;; (chain-query* maybe-query (assoc (apply chain-facets*  args) :facet true))))
+    (chain-query* maybe-query (apply chain-facets* args))))
+
+(defn query [& body]
+  {:facet.query (chain-criteria* body)})
 
