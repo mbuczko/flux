@@ -122,7 +122,7 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ```
 Same story with facets:
 
-    (with-facets (!ex :popularity "dt") {:limit 100
+    (with-facets [(!ex :popularity "dt")] {:limit 100
 	                                     :offset 12
 							             :mincount 3})
 
