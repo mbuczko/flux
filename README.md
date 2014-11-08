@@ -72,7 +72,7 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ;; {!tag=make}category:car/Mercedes/Sprinter
 
 (with-criteria
-  (is (!tag :category "make) "car/Mercedes/Sprinter"))
+  (is (!tag :category "make") "car/Mercedes/Sprinter"))
 
 ;; category:car/Mercedes/Sprinter AND build_year:2010
 
@@ -122,11 +122,10 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ```
 Same story with facets:
 
-    (with-facets [(!ex :popularity "dt")] {:limit 100
-	                                     :offset 12
-							             :mincount 3})
+    (with-facets {:limit 100 :offset 12 :mincount 3} (fields (!ex :popularity "dt")))
 
-    (with-facets [:popularity :category] {:limit 10}
+    (with-facets
+	  (fields :category :popularity)
 	  (query
 	    (is :category "car")
 		(is :build_year 2000))

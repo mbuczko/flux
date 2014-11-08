@@ -32,11 +32,11 @@
     (first body)
     (join-op " AND " body)))
 
-(defn chain-facets* [facets opts & args]
-  (map #(hash-map :facet.field (name %)) facets))
-
-(defn chain-query* [& args]
-  (into #{} (map (fn [x] (if (nil? x) {:q "*:*"} (if (string? x) {:q x} x))) args)))
+(defn- chain-query* [& body]
+  (mapv (fn [x] 
+          (if (nil? x) {:q "*:*"} 
+              (if (string? x) {:q x} x)))
+        (flatten body)))
 
 (defn !tag [field tag]
   (str "{!tag=" tag "}" (name field)))
@@ -81,18 +81,20 @@
   (if (pred x) [x more] [nil body]))
 
 (defn query? [arg]
-  (clojure.core/or (string? arg) (set? arg)))
+  (clojure.core/or (string? arg) (vector? arg)))
 
-(defmacro with-criteria [& body]
+(defn with-criteria [& body]
   (let [[maybe-query args] (take-when query? body)]
     (chain-query* maybe-query {:fq (chain-criteria* args)})))
 
-(defmacro with-facets [& body]
-  (let [[maybe-query [facets & tail]] (take-when query? body)
-        [maybe-opts args] (take-when map? tail)]
-    `(->> (apply chain-facets* ~facets ~maybe-opts ~args)
-          (apply chain-query* ~maybe-query {:facet true}))))
+(defn with-facets [& body]
+  (let [[maybe-query args] (take-when query? body)
+        [maybe-opts funcs] (take-when map? args)]
+    (chain-query* maybe-query funcs {:facet true})))
 
 (defn query [& body]
   {:facet.query (chain-criteria* body)})
 
+(defn fields [& body]
+  (let [[maybe-opts args] (take-when map? body)]
+    (map #(hash-map :facet.field (name %)) args)))
