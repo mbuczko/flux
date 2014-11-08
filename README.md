@@ -129,7 +129,8 @@ Same story with facets:
 	  (query
 	    (is :category "car")
 		(is :build_year 2000))
-      (pivot :popularity {:limit 5 :mincount 2}))
+      (pivot :category :price)
+      (pivot {:limit 5 :mincount 2} :popularity))
 
 And all things combined together:
 

@@ -80,21 +80,26 @@
 (defn take-when [pred [x & more :as body]]
   (if (pred x) [x more] [nil body]))
 
-(defn query? [arg]
+(defn solrized? [arg]
   (clojure.core/or (string? arg) (vector? arg)))
 
 (defn with-criteria [& body]
-  (let [[maybe-query args] (take-when query? body)]
+  (let [[maybe-query args] (take-when solrized? body)]
     (chain-query* maybe-query {:fq (chain-criteria* args)})))
 
 (defn with-facets [& body]
-  (let [[maybe-query args] (take-when query? body)
+  (let [[maybe-query args] (take-when solrized? body)
         [maybe-opts funcs] (take-when map? args)]
     (chain-query* maybe-query funcs {:facet true})))
 
 (defn query [& body]
-  {:facet.query (chain-criteria* body)})
+  (conj nil {:facet.query (chain-criteria* body)}))
+
+(defn pivot [& body]
+  (let [[maybe-opts args] (take-when map? body)]
+    (conj nil {:facet.pivot (s/join "," (map #(name %) args))})))
 
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
     (map #(hash-map :facet.field (name %)) args)))
+
