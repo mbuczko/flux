@@ -122,7 +122,7 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ```
 Same story with facets:
 
-```
+```clojure
 ;; facet.field=popularity&facet.field=category
 
 (with-facets
