@@ -154,15 +154,20 @@ Last thing are options like limit of rows returned or number of requested page:
 
 ```clojure
 (with-options
-  {:limit 100 :page 2})
+  {:rows 200 :page 2 :sort "price ASC"})
 ```
-And all things combined together:
+
+Few notes here:
+- pages are 0 - indexed
+- default rows limit is set to 100
+
+All these "with"s perfectly chain with each other, so it's pretty valid to combine them as following:
 
 ```clojure
 (-> "*:*"                ;; q="*:*"
   (with-criteria ...)    ;; fq=...
   (with-facets   ...)    ;; facets & pivots
-  (with-options  ...))   ;; rows=... & offset=....
+  (with-options  ...))   ;; rows=... & start=....
 ```
 
 Note that return-all query ("*:*") may be ommited (q="*:*" will be added by default).

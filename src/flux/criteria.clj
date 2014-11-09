@@ -38,13 +38,13 @@
               (if (string? x) {:q x} x)))
         (flatten body)))
 
-(defn- get-opts [prefix opts]
+(defn- opts= [prefix opts]
   (let [p (name prefix)]
     (if (nil? opts) 
       nil 
       (for [[k v] opts] {(keyword (str p "." (name k))) v}))))
 
-(defn- get-names [keywords]
+(defn- names= [keywords]
   (map #(name %) keywords))
 
 (defn- chained? [arg]
@@ -97,12 +97,12 @@
 
 (defn pivots [& body]
   (let [[maybe-opts args] (take-when map? body)]
-    (conj (get-opts :facet.pivot maybe-opts)
-          (map #(hash-map :facet.pivot (s/join "," (get-names %))) args))))
+    (conj (opts= :facet.pivot maybe-opts)
+          (map #(hash-map :facet.pivot (s/join "," (names= %))) args))))
 
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
-    (conj (get-opts :facet maybe-opts)
+    (conj (opts= :facet maybe-opts)
           (map #(hash-map :facet.field (name %)) args))))
 
 (defn with-criteria [& body]
@@ -114,3 +114,12 @@
         [maybe-opts funcs] (take-when map? args)]
     (chain-query* maybe-query funcs {:facet true})))
 
+(defn with-options [& body]
+  (let [[maybe-query [opts]] (take-when chained? body)
+        rows (:rows opts 100)
+        page (:page opts 0)
+        sort (:sort opts)]
+    (chain-query* maybe-query (conj 
+                               (if (nil? sort) nil {:sort sort}) 
+                               {:rows rows} 
+                               {:start (* page rows)}))))
