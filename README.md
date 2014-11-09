@@ -161,13 +161,13 @@ Few notes here:
 - pages are 0 - indexed
 - default rows limit is set to 100
 
-All these "with"s perfectly chain with each other, so it's pretty valid to combine them as following:
+All these "with-" forms perfectly chain with each other, so it's pretty valid to combine them as following:
 
 ```clojure
 (-> "*:*"                ;; q="*:*"
   (with-criteria ...)    ;; fq=...
   (with-facets   ...)    ;; facets & pivots
-  (with-options  ...))   ;; rows=... & start=....
+  (with-options  ...))   ;; rows=... & start=... & sort=...
 ```
 
 Note that return-all query ("*:*") may be ommited (q="*:*" will be added by default).
