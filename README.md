@@ -133,11 +133,11 @@ Same story with facets:
 (with-facets
   (fields (!ex :popularity "dt")))
 
-;; facet.field=category&facet.field=popularity&facet.field.limit=100&facetfield.offset=12&
-;; facet.pivot=category,price&facet.pivot=popularity&facet.pivot.limit=5&facet.pivot.mincount=20
-
 ;; for fields all options are automaticaly prefixed with "facet.", so :limit becomes facet.limit
 ;; for pivots all options are automaticaly prefixed with "facet.pivot.", so :mincount becomes facet.pivot.mincount
+
+;; facet.field=category&facet.field=popularity&facet.field.limit=100&facetfield.offset=12&
+;; facet.pivot=category,price&facet.pivot=popularity&facet.pivot.limit=5&facet.pivot.mincount=20
 
 (with-facets
   (fields {:limit 100 :offset 12} :category :popularity)
@@ -152,16 +152,17 @@ Same story with facets:
 ```
 Last thing are options like limit of rows returned or number of requested page:
 
-```
+```clojure
 (with-options
   {:limit 100 :page 2})
-
+```
 And all things combined together:
 
-    (-> "*:*"                ;; q="*:*"
-	  (with-criteria ...)    ;; fq=...
-	  (with-facets   ...)    ;; facets & pivots
-	  (with-options  ...))   ;; rows=... & offset=....
+```clojure
+(-> "*:*"                ;; q="*:*"
+  (with-criteria ...)    ;; fq=...
+  (with-facets   ...)    ;; facets & pivots
+  (with-options  ...))   ;; rows=... & offset=....
 ```
 
 Note that return-all query ("*:*") may be ommited (q="*:*" will be added by default).
