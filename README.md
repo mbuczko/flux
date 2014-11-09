@@ -64,17 +64,17 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ```clojure
 (use 'flux.criteria)
 
-;; make:Mercedes*
+;; fq=make:Mercedes*
 
 (with-criteria
   (is :make "Mercedes*"))
 
-;; {!tag=make}category:car/Mercedes/Sprinter
+;; fq={!tag=make}category:car/Mercedes/Sprinter
 
 (with-criteria
   (is (!tag :category "make") "car/Mercedes/Sprinter"))
 
-;; category:car/Mercedes/Sprinter AND build_year:2010
+;; fq=category:car/Mercedes/Sprinter AND build_year:2010
 
 (with-criteria
   (is :category "car/Mercedes/Sprinter")
@@ -93,24 +93,24 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
   (is {:category  "car/Mercedes/Sprinter" 
        :build_year 2010}))
 
-;; (-technical_condition:damaged) OR ((price:[* TO 5000]) AND (build_year:[* TO 2005]))
+;; fq=(-technical_condition:damaged) OR ((price:[* TO 5000]) AND (build_year:[* TO 2005]))
 
 (with-criteria
   (or
     (is-not :technical_condition "damaged")
     (<= {:price 5000 :build_year 2005})))
 
-;; make:[audi mercedes]
+;; fq=make:[audi mercedes]
 
 (with-criteria
    (any-of :make ["audi" "mercedes"]))
 
-;; -make:[zaporożec wołga]
+;; fq=-make:[zaporożec wołga]
 
 (with-criteria
    (none-of :make ["zaporożec" "wołga"]))
 
-;; (description:"nówka sztuka") OR (price:[5000 TO 15000] AND currency:PLN))
+;; fq=(description:"nówka sztuka") OR (price:[5000 TO 15000] AND currency:PLN))
 
 (with-criteria
    (or
@@ -122,22 +122,49 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 ```
 Same story with facets:
 
-    (with-facets {:limit 100 :offset 12 :mincount 3} (fields (!ex :popularity "dt")))
+```
+;; facet.field=popularity&facet.field=category
 
-    (with-facets
-	  (fields :category :popularity)
-	  (query
-	    (is :category "car")
-		(is :build_year 2000))
-      (pivot :category :price)
-      (pivot {:limit 5 :mincount 2} :popularity))
+(with-facets
+  (fields :popularity :category))
+	
+;; facet.field={!ex=dt}popularity
+
+(with-facets
+  (fields (!ex :popularity "dt")))
+
+;; facet.field=category&facet.field=popularity&facet.field.limit=100&facetfield.offset=12&
+;; facet.pivot=category,price&facet.pivot=popularity&facet.pivot.limit=5&facet.pivot.mincount=20
+
+;; for fields all options are automaticaly prefixed with "facet.", so :limit becomes facet.limit
+;; for pivots all options are automaticaly prefixed with "facet.pivot.", so :mincount becomes facet.pivot.mincount
+
+(with-facets
+  (fields {:limit 100 :offset 12} :category :popularity)
+  (pivots {:limit 5 :mincount 20} [:category :price] [:popularity]))
+
+;; facet.query=category:car AND build_year:2000
+
+(with-facets
+    (query
+      (is :category "car")
+   	  (is :build_year 2000)))
+```
+Last thing are options like limit of rows returned or number of requested page:
+
+```
+(with-options
+  {:limit 100 :page 2})
 
 And all things combined together:
 
-    (-> "*:*"
-	  (with-criteria (...))
-	  (with-facets (...))
-	  (with-options {:limit 100 :page 2}))
+    (-> "*:*"                ;; q="*:*"
+	  (with-criteria ...)    ;; fq=...
+	  (with-facets   ...)    ;; facets & pivots
+	  (with-options  ...))   ;; rows=... & offset=....
+```
+
+Note that return-all query ("*:*") may be ommited (q="*:*" will be added by default).
 
 ###javax.servlet/servlet-api and EmbeddedSolrServer
 

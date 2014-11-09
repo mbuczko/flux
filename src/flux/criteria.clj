@@ -38,6 +38,18 @@
               (if (string? x) {:q x} x)))
         (flatten body)))
 
+(defn- get-opts [prefix opts]
+  (let [p (name prefix)]
+    (if (nil? opts) 
+      nil 
+      (for [[k v] opts] {(keyword (str p "." (name k))) v}))))
+
+(defn- get-names [keywords]
+  (map #(name %) keywords))
+
+(defn- chained? [arg]
+  (clojure.core/or (string? arg) (vector? arg)))
+
 (defn !tag [field tag]
   (str "{!tag=" tag "}" (name field)))
 
@@ -80,26 +92,25 @@
 (defn take-when [pred [x & more :as body]]
   (if (pred x) [x more] [nil body]))
 
-(defn solrized? [arg]
-  (clojure.core/or (string? arg) (vector? arg)))
-
-(defn with-criteria [& body]
-  (let [[maybe-query args] (take-when solrized? body)]
-    (chain-query* maybe-query {:fq (chain-criteria* args)})))
-
-(defn with-facets [& body]
-  (let [[maybe-query args] (take-when solrized? body)
-        [maybe-opts funcs] (take-when map? args)]
-    (chain-query* maybe-query funcs {:facet true})))
-
 (defn query [& body]
-  (conj nil {:facet.query (chain-criteria* body)}))
+  (conj nil (hash-map :facet.query (chain-criteria* body))))
 
-(defn pivot [& body]
+(defn pivots [& body]
   (let [[maybe-opts args] (take-when map? body)]
-    (conj nil {:facet.pivot (s/join "," (map #(name %) args))})))
+    (conj (get-opts :facet.pivot maybe-opts)
+          (map #(hash-map :facet.pivot (s/join "," (get-names %))) args))))
 
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
-    (map #(hash-map :facet.field (name %)) args)))
+    (conj (get-opts :facet maybe-opts)
+          (map #(hash-map :facet.field (name %)) args))))
+
+(defn with-criteria [& body]
+  (let [[maybe-query args] (take-when chained? body)]
+    (chain-query* maybe-query {:fq (chain-criteria* args)})))
+
+(defn with-facets [& body]
+  (let [[maybe-query args] (take-when chained? body)
+        [maybe-opts funcs] (take-when map? args)]
+    (chain-query* maybe-query funcs {:facet true})))
 
