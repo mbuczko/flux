@@ -33,19 +33,19 @@
     (join-op " AND " body)))
 
 (defn- chain-query* [& body]
-  (mapv (fn [x] 
-          (if (nil? x) {:q "*:*"} 
+  (mapv (fn [x]
+          (if (nil? x) {:q "*:*"}
               (if (string? x) {:q x} x)))
         (flatten body)))
 
 (defn- opts= [prefix opts]
   (let [p (name prefix)]
-    (if (nil? opts) 
-      nil 
+    (if (nil? opts)
+      nil
       (for [[k v] opts] {(keyword (str p "." (name k))) v}))))
 
 (defn- names= [keywords]
-  (map #(name %) keywords))
+  (map name keywords))
 
 (defn- chained? [arg]
   (clojure.core/or (string? arg) (vector? arg)))
