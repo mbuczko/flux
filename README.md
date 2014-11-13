@@ -170,7 +170,7 @@ All these "with-" forms perfectly chain with each other, so it's pretty valid to
   (with-options  ...))   ;; rows=... & start=... & sort=...
 ```
 
-Note that return-all query ("*:*") may be ommited (q="*:*" will be added by default).
+Note that match-all query ("*:*") may be ommited (q="*:*" will be added by default).
 
 ###javax.servlet/servlet-api and EmbeddedSolrServer
 
