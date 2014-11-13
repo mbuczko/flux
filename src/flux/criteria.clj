@@ -3,30 +3,23 @@
   (:require [clojure.string :as s])
   (:require [flux.query :as q]))
 
-(def ^{:dynamic true} *hyphen* "+")
+(def ^{:dynamic true} *junction* "+")
 
 (defn- parenthesize [criteria]
   (str "(" criteria ")"))
 
-(defn- negate [fn args]
-  (binding [*hyphen* "-"]
-    (let [criteria (apply fn args)]
-      (if (= \- (first criteria)) criteria (str "-" criteria)))))
-
 (defn- join-op [op args]
-  (let [maybe-vector (first args)]
-    (if (vector? maybe-vector)
-      (parenthesize (s/join op maybe-vector))
-      (s/join op (map parenthesize args)))))
+  (parenthesize (s/join op (flatten args))))
 
-(defn- make-criteria [cfn args]
-  (let [maybe-map (first args)]
+(defn- join-field [fn junction field values]
+  (str junction (apply fn field values)))
+
+(defn make-criteria [fn args]
+  (let [join-fn (partial join-field fn *junction*)
+        maybe-map (first args)]
     (if (map? maybe-map)
-      (->> maybe-map
-           (map #(str *hyphen* (make-criteria cfn %)))
-           (s/join " "))
-      (let [field (name (first args))]
-        (apply cfn field (rest args))))))
+      (for [[k & v] maybe-map] (join-fn k v))
+      (list (join-fn (name maybe-map) (rest args))))))
 
 (defn- chain-criteria [body]
   (if (= (count body) 1)
@@ -39,9 +32,6 @@
 (defn- prefix-keys [prefix opts]
   (when-let [p (name prefix)]
     (for [[k v] opts] {(keyword (str p "." (name k))) v})))
-
-(defn- names [keywords]
-  (map name keywords))
 
 (defn queried? [arg]
   (clojure.core/or (string? arg) (:q arg)))
@@ -74,13 +64,15 @@
   (make-criteria #(str %1 ":" %2) args))
 
 (defn is-not [& args]
-  (negate is args))
+  (binding [*junction* "-"]
+    (apply is args)))
 
 (defn any-of [& args]
   (make-criteria #(str %1 ":[" (s/join " " %2) "]") args))
 
 (defn none-of [& args]
-  (negate any-of args))
+  (binding [*junction* "-"]
+    (apply any-of args)))
 
 (defn between [& args]
   (make-criteria #(str %1 ":[" (first %2) " TO " (second %2) "]") args))
@@ -94,7 +86,7 @@
 (defn pivots [& body]
   (let [[maybe-opts args] (take-when map? body)]
     (concat (prefix-keys :facet.pivot maybe-opts)
-            (map #(hash-map :facet.pivot [(s/join "," (names %))]) args))))
+            (map #(hash-map :facet.pivot [(s/join "," (map name %))]) args))))
 
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
@@ -103,7 +95,6 @@
 
 (defn with-criteria [& body]
   (let [[maybe-query args] (take-when queried? body)]
-    ;; (#'q/create-solr-params
     (merge-with concat 
                 {:fq (chain-criteria args)}
                 (query-str maybe-query))))
@@ -123,6 +114,6 @@
         sort (:sort opts "score desc")]
     (merge-with concat
                 maybe-query
-                 {:sort sort}
-                 {:rows rows}
-                 {:start (* page rows)})))
+                {:sort sort}
+                {:rows rows}
+                {:start (* page rows)})))
