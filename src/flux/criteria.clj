@@ -3,7 +3,7 @@
   (:require [clojure.string :as s])
   (:require [flux.query :as q]))
 
-(def ^{:dynamic true} *junction* "+")
+(def ^{:dynamic true} *junction* "")
 
 (defn- parenthesize [criteria]
   (str "(" criteria ")"))
@@ -11,11 +11,11 @@
 (defn- join-op [op args]
   (parenthesize (s/join op (flatten args))))
 
-(defn- join-field [fn junction field values]
-  (str junction (apply fn field values)))
+(defn- join-field [f junction field values]
+  (str junction (apply f field values)))
 
-(defn make-criteria [fn args]
-  (let [join-fn (partial join-field fn *junction*)
+(defn make-criteria [f args]
+  (let [join-fn (partial join-field f *junction*)
         maybe-map (first args)]
     (if (map? maybe-map)
       (for [[k & v] maybe-map] (join-fn k v))
@@ -33,8 +33,8 @@
   (when-let [p (name prefix)]
     (for [[k v] opts] {(keyword (str p "." (name k))) v})))
 
-(defn queried? [arg]
-  (clojure.core/or (string? arg) (:q arg)))
+(defn- take-when [pred [x & more :as body]]
+  (if (pred x) [x more] [nil body]))
 
 (defn !tag [field tag]
   (str "{!tag=" tag "}" (name field)))
@@ -77,11 +77,8 @@
 (defn between [& args]
   (make-criteria #(str %1 ":[" (first %2) " TO " (second %2) "]") args))
 
-(defn take-when [pred [x & more :as body]]
-  (if (pred x) [x more] [nil body]))
-
-(defn query [& body]
-  (list {:facet.query (chain-criteria body)}))
+(defn query [& args]
+  (list {:facet.query (chain-criteria args)}))
 
 (defn pivots [& body]
   (let [[maybe-opts args] (take-when map? body)]
@@ -91,24 +88,18 @@
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
     (concat (prefix-keys :facet maybe-opts)
-            (map #(hash-map :facet.field [(name %)]) args))))
+            (map #(hash-map :facet.field (list (name %))) args))))
 
-(defn with-criteria [& body]
-  (let [[maybe-query args] (take-when queried? body)]
-    (merge-with concat 
-                {:fq (chain-criteria args)}
-                (query-str maybe-query))))
+(defn with-filter [& body]
+  (let [[maybe-query filters] (take-when map? body)]
+    (merge-with concat maybe-query {:fq (chain-criteria filters)})))
 
 (defn with-facets [& body]
-  (let [[maybe-query args] (take-when queried? body)
-        [maybe-opts funcs] (take-when map? args)]
-    (apply merge-with concat 
-           {:facet true}
-           (query-str maybe-query)
-           (flatten funcs))))
+  (let [[maybe-query facets] (take-when map? body)]
+    (apply merge-with concat {:facet true} (dissoc maybe-query :facet) (flatten facets))))
 
 (defn with-options [& body]
-  (let [[maybe-query [opts]] (take-when queried? body)
+  (let [[maybe-query [opts]] (take-when #(not (:rows %)) body)
         rows (:rows opts 100)
         page (:page opts 0)
         sort (:sort opts "score desc")]

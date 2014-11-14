@@ -66,53 +66,53 @@ As it's quite cumbersome to define filters using raw Solr syntax following is a 
 
 ;; fq=make:Mercedes*
 
-(with-criteria
+(with-filter
   (is :make "Mercedes*"))
 
 ;; fq={!tag=make}category:car/Mercedes/Sprinter
 
-(with-criteria
+(with-filter
   (is (!tag :category "make") "car/Mercedes/Sprinter"))
 
 ;; fq=category:car/Mercedes/Sprinter AND build_year:2010
 
-(with-criteria
+(with-filter
   (is :category "car/Mercedes/Sprinter")
   (is :build_year 2010))
 
 ;; this is equivalent to:
 
-(with-criteria
+(with-filter
   (and
     (is :category "car/Mercedes/Sprinter")
     (is :build_year 2010)))
 
 ;; and can be shortened even further (this kind of "shortcut" applies to all functions listed below):
 
-(with-criteria
+(with-filter
   (is {:category  "car/Mercedes/Sprinter" 
        :build_year 2010}))
 
 ;; fq=(-technical_condition:damaged) OR ((price:[* TO 5000]) AND (build_year:[* TO 2005]))
 
-(with-criteria
+(with-filter
   (or
     (is-not :technical_condition "damaged")
     (<= {:price 5000 :build_year 2005})))
 
 ;; fq=make:[audi mercedes]
 
-(with-criteria
+(with-filter
    (any-of :make ["audi" "mercedes"]))
 
 ;; fq=-make:[zaporożec wołga]
 
-(with-criteria
+(with-filter
    (none-of :make ["zaporożec" "wołga"]))
 
 ;; fq=(description:"nówka sztuka") OR (price:[5000 TO 15000] AND currency:PLN))
 
-(with-criteria
+(with-filter
    (or
      (has :description "nówka sztuka")
      (and
@@ -157,20 +157,42 @@ Last thing are options like limit of rows returned or number of requested page:
   {:rows 200 :page 2 :sort "price ASC"})
 ```
 
-Few notes here:
-- pages are 0 - indexed
-- default rows limit is set to 100
+Few notes regarding available options:
+- pages are 0 indexed (so the first page is 0, next one 1 and so on...)
+- default rows limit is 100
+- default sorting is "score desc"
 
 All these "with-" forms perfectly chain with each other, so it's pretty valid to combine them as following:
 
 ```clojure
-(-> "*:*"                ;; q="*:*"
-  (with-criteria ...)    ;; fq=...
-  (with-facets   ...)    ;; facets & pivots
-  (with-options  ...))   ;; rows=... & start=... & sort=...
+(-> (with-filter ...)    ;; fq=...
+    (with-facets   ...)  ;; facets & pivots
+    (with-options  ...)) ;; rows=... & start=... & sort=...
 ```
 
-Note that match-all query ("*:*") may be ommited (q="*:*" will be added by default).
+Moreover to get advantage of SOLR caching you may try to split with-filter to several separate ones:
+
+```clojure
+(-> (with-filter ...)    ;; fq=...
+    (with-filter ...))   ;; fq=...
+```
+
+Alright, fully functional sample at the end:
+
+```clojure
+(require '[flux.http :as http])
+(require '[flux.core :as flux])
+(require '[flux.criteria :as c])
+
+(def conn (http/create "http://localhost:8983/solr" :collection1))
+
+(flux/with-connection conn
+  (flux/query "*:*"
+              (-> (c/with-filter (c/is :category "car/BMW"))
+                  (c/with-facets (c/fields :build_year))
+                  (c/with-options {:page 2)))))
+```
+
 
 ###javax.servlet/servlet-api and EmbeddedSolrServer
 
