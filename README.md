@@ -150,7 +150,7 @@ Same story with facets:
       (is :category "car")
    	  (is :build_year 2000)))
 ```
-Last thing are options like limit of rows returned or number of requested page:
+Last but not least are options: rows returned, requested page and sorting criteria:
 
 ```clojure
 (with-options
@@ -165,9 +165,9 @@ Few notes regarding available options:
 All these "with-" forms perfectly chain with each other, so it's pretty valid to combine them as following:
 
 ```clojure
-(-> (with-filter ...)    ;; fq=...
-    (with-facets   ...)  ;; facets & pivots
-    (with-options  ...)) ;; rows=... & start=... & sort=...
+(-> (with-filter  ...)  ;; fq=...
+    (with-facets  ...)  ;; facets & pivots
+    (with-options ...)) ;; rows=... & start=... & sort=...
 ```
 
 Moreover to get advantage of SOLR caching you may try to split with-filter to several separate ones:
