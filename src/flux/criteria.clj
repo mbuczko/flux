@@ -1,5 +1,5 @@
 (ns flux.criteria
-  (:refer-clojure :exclude [<= >= and or])
+  (:refer-clojure :exclude [<= >= > and or])
   (:require [clojure.string :as s])
   (:require [flux.query :as q]))
 
@@ -12,22 +12,18 @@
   (parenthesize (s/join op (flatten args))))
 
 (defn- join-field [f junction field values]
-  (str junction (apply f field values)))
+  (str junction (apply f (name field) values)))
 
-(defn make-criteria [f args]
-  (let [join-fn (partial join-field f *junction*)
-        maybe-map (first args)]
+(defn- make-criteria [f [maybe-map & values]]
+  (let [join-fn (partial join-field f *junction*)]
     (if (map? maybe-map)
       (for [[k & v] maybe-map] (join-fn k v))
-      (list (join-fn (name maybe-map) (rest args))))))
+      (list (join-fn maybe-map values)))))
 
 (defn- chain-criteria [body]
   (if (= (count body) 1)
     (first body)
     (join-op " AND " body)))
-
-(defn- query-str [x]
-  (if (nil? x) {:q "*:*"} (if (string? x) {:q x} x)))
 
 (defn- prefix-keys [prefix opts]
   (when-let [p (name prefix)]
@@ -57,6 +53,9 @@
 (defn >= [& args]
   (make-criteria #(str %1 ":[" %2 " TO *]") args))
 
+(defn > [& args]
+  (make-criteria #(str %1 ":[" %2 " TO *}") args))
+
 (defn has [& args]
   (make-criteria #(str %1 ":\"" %2  "\"") args))
 
@@ -83,7 +82,7 @@
 (defn pivots [& body]
   (let [[maybe-opts args] (take-when map? body)]
     (concat (prefix-keys :facet.pivot maybe-opts)
-            (map #(hash-map :facet.pivot [(s/join "," (map name %))]) args))))
+            (map #(hash-map :facet.pivot (list (s/join "," (map name %)))) args))))
 
 (defn fields [& body]
   (let [[maybe-opts args] (take-when map? body)]
