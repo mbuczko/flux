@@ -10,7 +10,7 @@ To include the Flux library, add the following to your `:dependencies`:
 
 ## Usage
 
-###Http
+### Http
 
 ```clojure
 (require '[flux.http :as http])
@@ -18,7 +18,7 @@ To include the Flux library, add the following to your `:dependencies`:
 (def conn (http/create "http://localhost:8983/solr" :collection1))
 ```
 
-###Embedded
+### Embedded
 
 ```clojure
 (require '[flux.embedded :as embedded])
@@ -26,7 +26,7 @@ To include the Flux library, add the following to your `:dependencies`:
 (def cc (embedded/create-core-container "path/to/solr-home" "path/to/solr.xml"))
 ```
 
-####Core auto-discovery
+#### Core auto-discovery
 Flux also supports `core.properties`. Just give `create-core` the solr-home path as the only argument.
 
   Note: It's important to call the `load` method on the resulting `CoreContainer` instance:
@@ -42,7 +42,7 @@ Now create the embedded server instance:
 (def conn (embedded/create cc :collection1))
 ```
 
-###Client
+### Client
 Once a connection as been created, use the `with-connection` macro to wrap client calls:
 
 ```clojure
@@ -194,14 +194,14 @@ Alright, fully functional sample at the end:
 ```
 
 
-###javax.servlet/servlet-api and EmbeddedSolrServer
+### javax.servlet/servlet-api and EmbeddedSolrServer
 
 Unfortunately, EmbeddedSolrServer requires javax.servlet/servlet-api as an implicit dependency. Because of this, Flux adds this lib as a depedency.
 
   * http://wiki.apache.org/solr/Solrj#EmbeddedSolrServer
   * http://lucene.472066.n3.nabble.com/EmbeddedSolrServer-java-lang-NoClassDefFoundError-javax-servlet-ServletRequest-td483937.html
 
-###Test
+### Test
 ```shell
 lein midje
 ```
